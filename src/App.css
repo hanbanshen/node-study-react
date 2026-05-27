@@ -1,0 +1,24 @@
+.app {
+  max-width: 800px;
+  margin: 60px auto;
+  padding: 24px;
+  font-family: Arial, sans-serif;
+}
+
+h1 {
+  font-size: 36px;
+  margin-bottom: 16px;
+}
+
+p {
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.card {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background-color: #f9f9f9;
+}
