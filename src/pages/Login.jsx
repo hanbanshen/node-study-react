@@ -1,62 +1,81 @@
 // src/pages/Login.jsx
 
-// useState 用来保存页面中的数据
+// useState 用来保存页面上的数据
+// 比如用户名、密码、提示信息
 import { useState } from 'react'
 
-// 引入自己封装好的请求工具
+// 引入封装好的 axios 请求工具
 import request from '../api/request'
 
 function Login() {
-	// 保存用户名
+	// username 保存用户输入的用户名
 	const [username, setUsername] = useState('')
 
-	// 保存密码
+	// password 保存用户输入的密码
 	const [password, setPassword] = useState('')
 
-	// 保存页面提示信息
+	// message 保存页面提示，比如“登录成功”或“登录失败”
 	const [message, setMessage] = useState('')
 
-	// 点击登录按钮后执行这个函数
+	// 用户点击登录按钮后，会执行这个函数
 	async function handleLogin(e) {
 		// 阻止表单默认刷新页面
-		// 如果不写，点击登录后页面会刷新，React 状态会丢失
+		// React 项目里一般不希望表单提交后刷新整个页面
 		e.preventDefault()
 
 		try {
-			// 向后端发送登录请求
-			// 注意：这里的 /login 必须和你的后端真实接口一致
-			// 如果你的后端是 /api/login，这里就要改成 /api/login
-			const res = await request.post('/login', {
+			// 调用后端登录接口
+			// 你的后端 app.js 挂载的是 /api/auth
+			// authApiRoutes.js 里面写的是 /login
+			// 所以完整接口路径是 /api/auth/login
+			const res = await request.post('/api/auth/login', {
 				username: username,
 				password: password
 			})
 
-			// 打印后端返回的数据
-			// 学习阶段非常重要，可以帮你看清楚 res.data 长什么样
+			// 打印后端返回结果，学习阶段建议保留
+			// 你可以在浏览器控制台看到 res.data 的真实结构
 			console.log('登录接口返回结果：', res.data)
 
-			// 假设后端返回的是 { token: 'xxx' }
-			// 那么这里就从 res.data.token 里取 token
-			const token = res.data.token
+			// 你的后端统一返回格式是：
+			// {
+			//   message: '登陆成功',
+			//   data: {
+			//     token: 'xxx',
+			//     user: {...}
+			//   }
+			// }
+			// 所以 token 在 res.data.data.token 里面
+			const token = res.data.data.token
 
-			// 如果后端没有返回 token，给出提示
+			// user 是当前登录用户信息
+			const user = res.data.data.user
+
+			// 如果没有 token，说明后端返回结构不符合预期
 			if (!token) {
-				setMessage('登录接口成功了，但后端没有返回 token')
+				setMessage('登录失败：后端没有返回 token')
 				return
 			}
 
 			// 把 token 保存到浏览器本地
-			// 以后请求购物车、订单接口时可以自动带上 token
+			// 后面访问购物车、订单等需要登录的接口时会用到
 			localStorage.setItem('token', token)
+
+			// 顺便把用户信息也保存起来，后面可以显示用户名、判断角色
+			localStorage.setItem('user', JSON.stringify(user))
 
 			// 修改页面提示
 			setMessage('登录成功')
 		} catch (err) {
-			// 如果请求失败，执行这里
+			// 如果接口请求失败，会进入这里
 			console.log('登录失败错误：', err)
 
-			// 修改页面提示
-			setMessage('登录失败，请检查接口地址、账号密码或后端是否启动')
+			// err.response?.data?.message 是后端返回的错误原因
+			// 比如：用户名或密码错误
+			const errorMessage = err.response?.data?.message || '登录失败，请检查账号密码或后端服务'
+
+			// 把错误信息显示到页面上
+			setMessage(errorMessage)
 		}
 	}
 
