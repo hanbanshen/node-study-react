@@ -1,81 +1,99 @@
 // src/pages/Login.jsx
 
-// useState 用来保存页面上的数据
-// 比如用户名、密码、提示信息
+// useState 用来保存页面数据
 import { useState } from 'react'
 
-// 引入封装好的 axios 请求工具
+// useNavigate 用来在 JS 代码里跳转页面
+import { useNavigate } from 'react-router-dom'
+
+// 引入请求工具
 import request from '../api/request'
 
 function Login() {
-	// username 保存用户输入的用户名
+	// 保存用户名
 	const [username, setUsername] = useState('')
 
-	// password 保存用户输入的密码
+	// 保存密码
 	const [password, setPassword] = useState('')
 
-	// message 保存页面提示，比如“登录成功”或“登录失败”
+	// 保存提示信息
 	const [message, setMessage] = useState('')
 
-	// 用户点击登录按钮后，会执行这个函数
+	// 保存登录按钮是否正在提交
+	// false 表示没有提交中
+	const [loading, setLoading] = useState(false)
+
+	// 创建跳转函数
+	const navigate = useNavigate()
+
+	// 点击登录按钮后执行
 	async function handleLogin(e) {
-		// 阻止表单默认刷新页面
-		// React 项目里一般不希望表单提交后刷新整个页面
+		// 阻止表单默认刷新
 		e.preventDefault()
 
+		// 简单前端校验
+		// trim() 是去掉字符串左右两边的空格
+		if (!username.trim()) {
+			setMessage('请输入用户名')
+			return
+		}
+
+		if (!password) {
+			setMessage('请输入密码')
+			return
+		}
+
 		try {
-			// 调用后端登录接口
-			// 你的后端 app.js 挂载的是 /api/auth
-			// authApiRoutes.js 里面写的是 /login
-			// 所以完整接口路径是 /api/auth/login
+			// 开始登录，把按钮改成提交中状态
+			setLoading(true)
+
+			// 清空旧提示
+			setMessage('')
+
+			// 请求后端登录接口
 			const res = await request.post('/api/auth/login', {
 				username: username,
 				password: password
 			})
 
-			// 打印后端返回结果，学习阶段建议保留
-			// 你可以在浏览器控制台看到 res.data 的真实结构
+			// 打印后端返回结果，方便学习
 			console.log('登录接口返回结果：', res.data)
 
-			// 你的后端统一返回格式是：
-			// {
-			//   message: '登陆成功',
-			//   data: {
-			//     token: 'xxx',
-			//     user: {...}
-			//   }
-			// }
-			// 所以 token 在 res.data.data.token 里面
+			// 你的后端 token 在 res.data.data.token
 			const token = res.data.data.token
 
-			// user 是当前登录用户信息
+			// 当前登录用户信息
 			const user = res.data.data.user
 
-			// 如果没有 token，说明后端返回结构不符合预期
+			// 如果后端没有返回 token，就提示错误
 			if (!token) {
 				setMessage('登录失败：后端没有返回 token')
 				return
 			}
 
-			// 把 token 保存到浏览器本地
-			// 后面访问购物车、订单等需要登录的接口时会用到
+			// 保存 token
 			localStorage.setItem('token', token)
 
-			// 顺便把用户信息也保存起来，后面可以显示用户名、判断角色
+			// 保存用户信息
 			localStorage.setItem('user', JSON.stringify(user))
 
-			// 修改页面提示
+			// 提示登录成功
 			setMessage('登录成功')
+
+			// 登录成功后跳转到商品列表页
+			navigate('/products')
 		} catch (err) {
-			// 如果接口请求失败，会进入这里
+			// 打印完整错误
 			console.log('登录失败错误：', err)
 
-			// err.response?.data?.message 是后端返回的错误原因
-			// 比如：用户名或密码错误
+			// 优先显示后端返回的错误信息
 			const errorMessage = err.response?.data?.message || '登录失败，请检查账号密码或后端服务'
 
-			// 把错误信息显示到页面上
+			// 显示错误提示
 			setMessage(errorMessage)
+		} finally {
+			// 不管登录成功还是失败，都结束提交状态
+			setLoading(false)
 		}
 	}
 
@@ -102,10 +120,17 @@ function Login() {
 					/>
 				</div>
 
-				<button type="submit">登录</button>
+				{/*
+          loading 为 true 时，禁用按钮
+          这样可以防止用户连续点击多次登录
+        */}
+				<button type="submit" disabled={loading}>
+					{loading ? '登录中...' : '登录'}
+				</button>
 			</form>
 
-			<p>{message}</p>
+			{/* 有 message 时才显示提示 */}
+			{message && <p>{message}</p>}
 		</div>
 	)
 }
